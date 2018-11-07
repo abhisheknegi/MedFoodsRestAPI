@@ -66,7 +66,7 @@ public class Profiles {
 		return response;
 	}
 
-	public static JSONObject postProfiles(Connection c, JSONObject input) {
+	public static JSONObject postProfiles(Connection c, JSONObject input) throws SQLException {
 
 		PreparedStatement ps;
 		int i = 0;
@@ -79,8 +79,16 @@ public class Profiles {
 			ps.setInt(3, Integer.valueOf(input.get("ageRangeId").toString()));
 			ps.setString(4, input.get("phone").toString());
 			i = ps.executeUpdate();
-			if (i == 1) {
-				ps.close();
+			ps.close();
+		} catch (SQLException e) {
+			System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
+			if (e.getSQLState().equals("23505")) {
+				response.put("Error", "Profile already exists.");
+				c.rollback();
+			}
+		}
+		if (i == 1) {
+			try {
 				ps = c.prepareStatement(
 						"insert into users (user_id, password_salt, password_hash, email, last_update) values(?,?,?,?,?)");
 				ps.setString(1, input.get("userId").toString());
@@ -90,20 +98,24 @@ public class Profiles {
 				ps.setObject(5, LocalDateTime.now());
 				i = ps.executeUpdate();
 				ps.close();
-			}
-			if (i == 1) {
-				c.commit();
-				response.put("response", "Success");
-			} else {
+				if (i == 1) {
+					c.commit();
+					response.put("response", "Success");
+				} else {
+					c.rollback();
+					response.put("response", "Error");
+				}
+			} catch (SQLException e) {
 				c.rollback();
-				response.put("response", "Error");
+				System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
+				if (e.getSQLState().equals("23505")) {
+					response.put("Error", "User already exists.");
+				}
 			}
-		} catch (SQLException e) {
-			System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
-			response.put("Error", "SQL Exception, check logs.");
 		}
 
 		return response;
+
 	}
 
 	public static JSONObject deleteProfiles(Connection c, String profileId) {
@@ -130,6 +142,8 @@ public class Profiles {
 					c.rollback();
 					response.put("response", "Error");
 				}
+			} else {
+				response.put("response", "User not found.");
 			}
 			ps.close();
 			rs.close();
