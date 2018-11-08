@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.endpointfunctions.Foods;
 import com.endpointfunctions.Profiles;
 import com.endpointfunctions.Users;
 
@@ -70,6 +71,22 @@ public class Controller {
 	public JSONObject deleteProfiles(@PathVariable(value = "profileId") String profileId) throws SQLException {
 		return Profiles.deleteProfiles(getDBConnection(), profileId);
 	}
+	
+	@RequestMapping(value = "/foods", method = RequestMethod.GET, produces = APPLICATION_JSON)
+	public JSONObject getFood() throws SQLException {
+		return Foods.getFoods(getDBConnection());
+	}
+
+	@RequestMapping(value = "/foods", method = RequestMethod.POST, produces = APPLICATION_JSON)
+	public JSONObject postFoods(@RequestBody JSONObject input) throws SQLException {
+		return Foods.postFoods(getDBConnection(), input);
+	}
+	
+	@RequestMapping(value = "/foods/{foodId}", method = RequestMethod.GET, produces = APPLICATION_JSON)
+	public JSONObject getFoodData(@PathVariable(value = "foodId") String foodId) throws SQLException {
+		return Foods.getFoods(getDBConnection());
+	}
+
 
 	private Connection getDBConnection() throws SQLException {
 
