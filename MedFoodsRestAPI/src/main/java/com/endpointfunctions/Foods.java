@@ -6,8 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -71,8 +73,8 @@ public class Foods {
 			System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
 			response.put("Error", "SQL Exception in getFoodData, check logs.");
 		}
-		
-		if(response.containsKey("Error")) {
+
+		if (response.containsKey("Error")) {
 			String errmsg = (String) response.get("Error");
 			response.clear();
 			response.put("Error", errmsg);
@@ -91,7 +93,7 @@ public class Foods {
 			while (rs.next()) {
 				items.add(rs.getString(1));
 			}
-			response.put("activeIngredient", String.join(",", items));
+			response.put("activeIngredients", String.join(", ", items));
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -111,7 +113,7 @@ public class Foods {
 			while (rs.next()) {
 				items.add(rs.getString(1));
 			}
-			response.put("metabolite", String.join(",", items));
+			response.put("metabolites", String.join(",", items));
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -143,7 +145,7 @@ public class Foods {
 				response = Conditions.getConditionData(c, rs.getInt(8), response);
 				response = Symptoms.getSymptomData(c, rs.getInt(9), response);
 				response = getRecommendationReferences(c, rs.getInt(1), response);
-				
+
 			}
 			rs.close();
 			ps.close();
@@ -158,7 +160,8 @@ public class Foods {
 	public static JSONObject getRecommendationReferences(Connection c, int recommendationId, JSONObject response) {
 		JSONArray referenceArray = new JSONArray();
 		try {
-			PreparedStatement ps = c.prepareStatement("select reference, reference_type from bibliography where recommendation_id = ?");
+			PreparedStatement ps = c
+					.prepareStatement("select reference, reference_type from bibliography where recommendation_id = ?");
 			ps.setInt(1, recommendationId);
 			ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
@@ -181,54 +184,78 @@ public class Foods {
 	// To be completed
 	public static JSONObject postFoods(Connection c, JSONObject input) throws SQLException {
 
-		PreparedStatement ps;
-		int i = 0;
+		JSONObject basicValidationResult = foodInputBasicValidation(input);
+		if (basicValidationResult.containsKey("ERROR")) {
+			return basicValidationResult;
+		} else {
+			return basicValidationResult;
+		}
+
+	}
+
+	@SuppressWarnings("rawtypes")
+	private static JSONObject foodInputBasicValidation(JSONObject input) {
+
 		JSONObject response = new JSONObject();
-		try {
-			ps = c.prepareStatement(
-					"insert into user_profile (user_prof_id, user_id, age_range_id, phone) values(?,?,?,?)");
-			ps.setString(1, input.get("userProfileId").toString());
-			ps.setString(2, input.get("userId").toString());
-			ps.setInt(3, Integer.valueOf(input.get("ageRangeId").toString()));
-			ps.setString(4, input.get("phone").toString());
-			i = ps.executeUpdate();
-			ps.close();
-		} catch (SQLException e) {
-			System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
-			if (e.getSQLState().equals("23505")) {
-				response.put("Error", "Profile already exists.");
-				c.rollback();
+		JSONObject resp = new JSONObject();
+
+		String generalTags = "name,description,disclaimer,consumptionMode,result,condition,symptom,activeIngredient,metabolite,dosage,references";
+		String dosageTags = "lowerLimit,upperLimit,frequency,unit";
+		String referenceTags = "reference,type";
+
+		int cnt = 0;
+		for (String tag : generalTags.split(",")) {
+			if (!(input.containsKey(tag) && StringUtils.isNotBlank(input.get(tag).toString()))) {
+				resp.put("err-" + String.valueOf(++cnt), ("\'" + tag + "\' tag is invalid."));
+			} else {
+				if ("dosage".equals(tag)) {
+					LinkedHashMap dosage = (LinkedHashMap) input.get("dosage");
+					for (String dosageTag : dosageTags.split(",")) {
+						if (!(dosage.containsKey(dosageTag))) {
+							resp.put("err-" + String.valueOf(++cnt), ("\'Dosage-" + dosageTag + "\' tag is missing."));
+						} else {
+							if (dosageTag.contains("Limit")) {
+								if (dosage.get(dosageTag).getClass() != Integer.class) {
+									resp.put("err-" + String.valueOf(++cnt),
+											("\'Dosage-" + dosageTag + "\' tag is invalid."));
+								}
+							} else {
+								if (StringUtils.isAllBlank(dosage.get(dosageTag).toString())) {
+									resp.put("err-" + String.valueOf(++cnt),
+											("\'Dosage-" + dosageTag + "\' tag is invalid."));
+								}
+							}
+						}
+					}
+				}
+				if ("references".equals(tag)) {
+					ArrayList references = (ArrayList) input.get("references");
+					for (int i = 0; i < references.size(); i++) {
+						LinkedHashMap reference = (LinkedHashMap) references.get(i);
+						for (String referenceTag : referenceTags.split(",")) {
+							System.out.println("Tag ===> " + referenceTag);
+							if (!reference.containsKey(referenceTag)) {
+								resp.put("err-" + String.valueOf(++cnt),
+										("\'Reference-" + referenceTag + "\' tag is missing."));
+							} else {
+								if (StringUtils.isAllBlank(reference.get(referenceTag).toString())) {
+									resp.put("err-" + String.valueOf(++cnt),
+											("\'Reference-" + referenceTag + "\' tag is invalid."));
+								}
+							}
+						}
+					}
+				}
 			}
 		}
-		if (i == 1) {
-			try {
-				ps = c.prepareStatement(
-						"insert into users (user_id, password_salt, password_hash, email, last_update) values(?,?,?,?,?)");
-				ps.setString(1, input.get("userId").toString());
-				ps.setString(2, input.get("passwordSalt").toString());
-				ps.setString(3, input.get("passwordHash").toString());
-				ps.setString(4, input.get("email").toString());
-				ps.setObject(5, LocalDateTime.now());
-				i = ps.executeUpdate();
-				ps.close();
-				if (i == 1) {
-					c.commit();
-					response.put("response", "Success");
-				} else {
-					c.rollback();
-					response.put("response", "Error");
-				}
-			} catch (SQLException e) {
-				c.rollback();
-				System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
-				if (e.getSQLState().equals("23505")) {
-					response.put("Error", "User already exists.");
-				}
-			}
+
+		if (resp.isEmpty()) {
+			response.put("Validated", "All tags present.");
+		} else {
+			response.put("ERROR", resp);
 		}
 
 		return response;
-
 	}
 
 }
