@@ -11,38 +11,35 @@ import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 @SuppressWarnings("unchecked")
 public class Foods {
 
-	public static JsonObject getFoods(Connection c) {
-		JsonObject response = new JsonObject();
-		JsonArray profileArray = new JsonArray();
+	public static JSONObject getFoods(Connection c) {
+		JSONObject response = new JSONObject();
+		JSONArray profileArray = new JSONArray();
 		try {
 			PreparedStatement ps = c
 					.prepareStatement("select food_id, name, description, disclaimer, image from foods");
 			ResultSet rs = ps.executeQuery();
 
 			while (rs.next()) {
-				JsonObject jo = new JsonObject();
-				jo.addProperty("foodId", rs.getInt(1));
-				jo.addProperty("name", rs.getString(2));
-				jo.addProperty("description", rs.getString(3));
-				jo.addProperty("disclaimer", rs.getString(4));
-				jo.addProperty("image", rs.getString(5));
+				JSONObject jo = new JSONObject();
+				jo.put("foodId", rs.getInt(1));
+				jo.put("name", rs.getString(2));
+				jo.put("description", rs.getString(3));
+				jo.put("disclaimer", rs.getString(4));
+				jo.put("image", rs.getString(5));
 				profileArray.add(jo);
 			}
 
-			response.addProperty("count", profileArray.size());
-			response.addProperty("foodItems", profileArray.toString());
+			response.put("count", profileArray.size());
+			response.put("foodItems", profileArray);
 
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
 			System.out.println("SQL Error => " + e.getErrorCode() + ", Msg => " + e.getMessage());
-			response.addProperty("Error", "SQL Exception in getFoods, check logs.");
+			response.put("Error", "SQL Exception in getFoods, check logs.");
 		}
 
 		return response;
