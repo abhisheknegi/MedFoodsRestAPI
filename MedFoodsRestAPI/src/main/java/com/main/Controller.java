@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.endpointfunctions.Foods;
 import com.endpointfunctions.Profiles;
 import com.endpointfunctions.Users;
+import com.google.gson.JsonObject;
 
 @RestController
 @SuppressWarnings("unchecked")
@@ -73,7 +74,7 @@ public class Controller {
 	}
 	
 	@RequestMapping(value = "/foods", method = RequestMethod.GET, produces = APPLICATION_JSON)
-	public JSONObject getFood() throws SQLException {
+	public JsonObject getFood() throws SQLException {
 		return Foods.getFoods(getDBConnection());
 	}
 
@@ -83,8 +84,8 @@ public class Controller {
 	}
 	
 	@RequestMapping(value = "/foods/{foodId}", method = RequestMethod.GET, produces = APPLICATION_JSON)
-	public JSONObject getFoodData(@PathVariable(value = "foodId") String foodId) throws SQLException {
-		return Foods.getFoods(getDBConnection());
+	public JSONObject getFoodData(@PathVariable(value = "foodId") int foodId) throws SQLException {
+		return Foods.getFoodData(getDBConnection(), foodId);
 	}
 
 

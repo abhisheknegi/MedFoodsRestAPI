@@ -15,13 +15,14 @@ public class Conditions {
 		JSONObject response = new JSONObject();
 		JSONArray profileArray = new JSONArray();
 		try {
-			PreparedStatement ps = c.prepareStatement("select name, description from conditions");
+			PreparedStatement ps = c.prepareStatement("select condition_id, name, description from conditions");
 			ResultSet rs = ps.executeQuery();
 
 			while (rs.next()) {
 				JSONObject jo = new JSONObject();
-				jo.put("name", rs.getString(1));
-				jo.put("description", rs.getString(2));
+				jo.put("conditionId", rs.getInt(1));
+				jo.put("name", rs.getString(2));
+				jo.put("description", rs.getString(3));
 				profileArray.add(jo);
 			}
 
@@ -31,7 +32,8 @@ public class Conditions {
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
-
+			System.out.println("SQL Error getConditions => " + e.getErrorCode() + ", Msg => " + e.getMessage());
+			response.put("Error", "SQL Exception in getConditions, check logs.");
 		}
 
 		return response;
@@ -42,17 +44,19 @@ public class Conditions {
 			PreparedStatement ps = c
 					.prepareStatement("select name, description from conditions where condition_id = ?");
 			ps.setInt(1, condId);
-			ResultSet rs1 = ps.executeQuery();
-			if (rs1.next()) {
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
 				JSONObject condition = new JSONObject();
-				condition.put("name", rs1.getString(1));
-				condition.put("description", rs1.getString(2));
+				condition.put("conditionId", condId);
+				condition.put("name", rs.getString(1));
+				condition.put("description", rs.getString(2));
 				response.put("condition", condition);
 			}
-			rs1.close();
+			rs.close();
 			ps.close();
 		} catch (SQLException e) {
-
+			System.out.println("SQL Error getConditionData => " + e.getErrorCode() + ", Msg => " + e.getMessage());
+			response.put("Error", "SQL Exception in getConditionData, check logs.");
 		}
 
 		return response;
