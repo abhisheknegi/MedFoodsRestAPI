@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.endpointfunctions.Foods;
+import com.endpointfunctions.FoodsPost;
 import com.endpointfunctions.Profiles;
 import com.endpointfunctions.Users;
 
@@ -79,7 +80,7 @@ public class Controller {
 
 	@RequestMapping(value = "/foods", method = RequestMethod.POST, produces = APPLICATION_JSON)
 	public JSONObject postFoods(@RequestBody JSONObject input) throws SQLException {
-		return Foods.postFoods(getDBConnection(), input);
+		return FoodsPost.postFoods(getDBConnection(), input);
 	}
 	
 	@RequestMapping(value = "/foods/{foodId}", method = RequestMethod.GET, produces = APPLICATION_JSON)

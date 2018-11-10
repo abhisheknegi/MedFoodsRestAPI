@@ -4,12 +4,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -86,14 +83,17 @@ public class Foods {
 	public static JSONObject getActiveIngredients(Connection c, int foodId, JSONObject response) {
 		try {
 			PreparedStatement ps = c
-					.prepareStatement("select active_ingredient_name from food_active_ingredients where food_id = ?");
+					.prepareStatement("select active_ingredient_id, active_ingredient_name from food_active_ingredients where food_id = ?");
 			ps.setInt(1, foodId);
 			ResultSet rs = ps.executeQuery();
-			List<String> items = new ArrayList<>();
+			JSONArray activeIngredientArray = new JSONArray();
 			while (rs.next()) {
-				items.add(rs.getString(1));
+				JSONObject jo = new JSONObject();
+				jo.put("activeIngredientId", rs.getInt(1));
+				jo.put("activeIngredientName", rs.getString(2));
+				activeIngredientArray.add(jo);
 			}
-			response.put("activeIngredients", String.join(", ", items));
+			response.put("activeIngredients", activeIngredientArray);
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -106,14 +106,18 @@ public class Foods {
 
 	public static JSONObject getMetabolites(Connection c, int foodId, JSONObject response) {
 		try {
-			PreparedStatement ps = c.prepareStatement("select metabolite_name from food_metabolites where food_id = ?");
+			PreparedStatement ps = c
+					.prepareStatement("select metabolite_id, metabolite_name from food_metabolites where food_id = ?");
 			ps.setInt(1, foodId);
 			ResultSet rs = ps.executeQuery();
-			List<String> items = new ArrayList<>();
+			JSONArray metaboliteArray = new JSONArray();
 			while (rs.next()) {
-				items.add(rs.getString(1));
+				JSONObject jo = new JSONObject();
+				jo.put("metaboliteId", rs.getInt(1));
+				jo.put("metaboliteName", rs.getString(2));
+				metaboliteArray.add(jo);
 			}
-			response.put("metabolites", String.join(",", items));
+			response.put("metabolites", metaboliteArray);
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -166,8 +170,8 @@ public class Foods {
 			ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
 				JSONObject jo = new JSONObject();
-				jo.put("type", rs.getString(2));
 				jo.put("reference", rs.getString(1));
+				jo.put("type", rs.getString(2));
 				referenceArray.add(jo);
 			}
 			response.put("references", referenceArray);
@@ -176,83 +180,6 @@ public class Foods {
 		} catch (SQLException e) {
 			System.out.println("SQL Error getMetabolites => " + e.getErrorCode() + ", Msg => " + e.getMessage());
 			response.put("Error", "SQL Exception in getRecommendationReferences, check logs.");
-		}
-
-		return response;
-	}
-
-	// To be completed
-	public static JSONObject postFoods(Connection c, JSONObject input) throws SQLException {
-
-		JSONObject basicValidationResult = foodInputBasicValidation(input);
-		if (basicValidationResult.containsKey("ERROR")) {
-			return basicValidationResult;
-		} else {
-			return basicValidationResult;
-		}
-
-	}
-
-	@SuppressWarnings("rawtypes")
-	private static JSONObject foodInputBasicValidation(JSONObject input) {
-
-		JSONObject response = new JSONObject();
-		JSONObject resp = new JSONObject();
-
-		String generalTags = "name,description,disclaimer,consumptionMode,result,condition,symptom,activeIngredient,metabolite,dosage,references";
-		String dosageTags = "lowerLimit,upperLimit,frequency,unit";
-		String referenceTags = "reference,type";
-
-		int cnt = 0;
-		for (String tag : generalTags.split(",")) {
-			if (!(input.containsKey(tag) && StringUtils.isNotBlank(input.get(tag).toString()))) {
-				resp.put("err-" + String.valueOf(++cnt), ("\'" + tag + "\' tag is invalid."));
-			} else {
-				if ("dosage".equals(tag)) {
-					LinkedHashMap dosage = (LinkedHashMap) input.get("dosage");
-					for (String dosageTag : dosageTags.split(",")) {
-						if (!(dosage.containsKey(dosageTag))) {
-							resp.put("err-" + String.valueOf(++cnt), ("\'Dosage-" + dosageTag + "\' tag is missing."));
-						} else {
-							if (dosageTag.contains("Limit")) {
-								if (dosage.get(dosageTag).getClass() != Integer.class) {
-									resp.put("err-" + String.valueOf(++cnt),
-											("\'Dosage-" + dosageTag + "\' tag is invalid."));
-								}
-							} else {
-								if (StringUtils.isAllBlank(dosage.get(dosageTag).toString())) {
-									resp.put("err-" + String.valueOf(++cnt),
-											("\'Dosage-" + dosageTag + "\' tag is invalid."));
-								}
-							}
-						}
-					}
-				}
-				if ("references".equals(tag)) {
-					ArrayList references = (ArrayList) input.get("references");
-					for (int i = 0; i < references.size(); i++) {
-						LinkedHashMap reference = (LinkedHashMap) references.get(i);
-						for (String referenceTag : referenceTags.split(",")) {
-							System.out.println("Tag ===> " + referenceTag);
-							if (!reference.containsKey(referenceTag)) {
-								resp.put("err-" + String.valueOf(++cnt),
-										("\'Reference-" + referenceTag + "\' tag is missing."));
-							} else {
-								if (StringUtils.isAllBlank(reference.get(referenceTag).toString())) {
-									resp.put("err-" + String.valueOf(++cnt),
-											("\'Reference-" + referenceTag + "\' tag is invalid."));
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (resp.isEmpty()) {
-			response.put("Validated", "All tags present.");
-		} else {
-			response.put("ERROR", resp);
 		}
 
 		return response;
