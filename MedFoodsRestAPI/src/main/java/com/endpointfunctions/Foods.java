@@ -100,7 +100,6 @@ public class Foods {
 			System.out.println("SQL Error getActiveIngredients => " + e.getErrorCode() + ", Msg => " + e.getMessage());
 			response.put("Error", "SQL Exception in getActiveIngredients, check logs.");
 		}
-
 		return response;
 	}
 
