@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,10 +24,13 @@ import com.endpointfunctions.Users;
 public class Controller {
 
 	private Connection c = null;
+	
+	@Autowired private Foods food;
 
 	@RequestMapping(value = "/", method = RequestMethod.GET, produces = APPLICATION_JSON)
 	public JSONObject getMethod() {
 		JSONObject response = new JSONObject();
+		System.out.println("API is Accessible....");
 		response.put("Success", "API is Accessible....");
 		return response;
 	}
@@ -75,7 +79,10 @@ public class Controller {
 	
 	@RequestMapping(value = "/foods", method = RequestMethod.GET, produces = APPLICATION_JSON)
 	public JSONObject getFood() throws SQLException {
-		return Foods.getFoods(getDBConnection());
+		//Foods food = new Foods();
+		return food.getFoods1(); 
+		//return Foods.getFoods1();
+		//return Foods.getFoods(getDBConnection());
 	}
 
 	@RequestMapping(value = "/foods", method = RequestMethod.POST, produces = APPLICATION_JSON)

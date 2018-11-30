@@ -4,14 +4,33 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.objects.foods;
+import com.repos.foodsRepository;
 
 @SuppressWarnings("unchecked")
+@Component
 public class Foods {
+
+	@Autowired
+	private foodsRepository foodRepo;
+
+	public Foods() {
+	}
+
+	public JSONObject getFoods1() {
+
+		for (foods food : foodRepo.findAll()) {
+			System.out.println(food.getId() + " : " + food.getName());
+		}
+
+		return null;
+	}
 
 	public static JSONObject getFoods(Connection c) {
 		JSONObject response = new JSONObject();
@@ -82,8 +101,8 @@ public class Foods {
 
 	public static JSONObject getActiveIngredients(Connection c, int foodId, JSONObject response) {
 		try {
-			PreparedStatement ps = c
-					.prepareStatement("select active_ingredient_id, active_ingredient_name from food_active_ingredients where food_id = ?");
+			PreparedStatement ps = c.prepareStatement(
+					"select active_ingredient_id, active_ingredient_name from food_active_ingredients where food_id = ?");
 			ps.setInt(1, foodId);
 			ResultSet rs = ps.executeQuery();
 			JSONArray activeIngredientArray = new JSONArray();
